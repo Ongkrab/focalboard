@@ -1,13 +1,17 @@
 name: Production-Release
 
-on: workflow_dispatch
+on:
+  push:
+    tags:
+      - 'releases-**'
+  pull_request:
+  workflow_dispatch:
 
 env:
  EXCLUDE_ENTERPRISE: true
  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
 jobs:
-
   ubuntu:
     runs-on: ubuntu-22.04
 
@@ -16,6 +20,21 @@ jobs:
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         path: "focalboard"
+    
+    - name: version
+      run: echo "::set-output name=version::$(./bin/azblogfilter --version)"
+      id: version
+    - name: release
+      uses: actions/create-release@v1
+      id: create_release
+      with:
+        draft: false
+        prerelease: false
+        release_name: ${{ steps.version.outputs.version }}
+        tag_name: ${{ github.ref }}
+        body_path: CHANGELOG.md
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
 
     - name: Replace token 1 server
       run: sed -i -e "s,placeholder_rudder_dataplane_url,${{ secrets.RUDDER_DATAPLANE_URL }},g" ${{ github.workspace }}/focalboard/server/services/telemetry/telemetry.go
@@ -51,16 +70,28 @@ jobs:
         BUILD_NUMBER: ${{ github.run_id }}
 
     - name: Upload server package
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      uses: actions/upload-artifact@v4
       with:
         name: focalboard-server-linux-amd64.tar.gz
         path: ${{ github.workspace }}/focalboard/dist/focalboard-server-linux-amd64.tar.gz
 
     - name: Upload app package
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      uses: actions/upload-artifact@v4
       with:
         name: focalboard-linux.tar.gz
         path: ${{ github.workspace }}/focalboard/linux/dist/focalboard-linux.tar.gz
+    
+    - name: Upload Release linux arm Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ github.workspace }}/focalboard/dist/focalboard-server-linux-amd64.tar.gz
+        asset_name: focalboard-server-linux-amd64.zip
+        asset_content_type: application/zip
+    - name: Debug output folder
+      run: ls -lh ./build
 
   macos:
     runs-on: macos-15
@@ -96,7 +127,7 @@ jobs:
         BUILD_NUMBER: ${{ github.run_id }}
 
     - name: Upload macOS package
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      uses: actions/upload-artifact@v4
       with:
         name: focalboard-mac.zip
         path: ${{ github.workspace }}/focalboard/mac/dist/focalboard-mac.zip
