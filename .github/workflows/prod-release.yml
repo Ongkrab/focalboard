@@ -93,44 +93,44 @@ jobs:
     - name: Debug output folder
       run: ls -lh ./build
 
-  macos:
-    runs-on: macos-15
+  # macos:
+  #   runs-on: macos-15
 
-    steps:
+  #   steps:
 
-    - name: Checkout
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      with:
-        path: "focalboard"
+  #   - name: Checkout
+  #     uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+  #     with:
+  #       path: "focalboard"
 
-    - name: Replace token 1 server
-      run: sed -i -e "s,placeholder_rudder_dataplane_url,${{ secrets.RUDDER_DATAPLANE_URL }},g" ${{ github.workspace }}/focalboard/server/services/telemetry/telemetry.go
+  #   - name: Replace token 1 server
+  #     run: sed -i -e "s,placeholder_rudder_dataplane_url,${{ secrets.RUDDER_DATAPLANE_URL }},g" ${{ github.workspace }}/focalboard/server/services/telemetry/telemetry.go
 
-    - name: Replace token 2 server
-      run: sed -i -e "s,placeholder_rudder_key,${{ secrets.RUDDER_PROD_KEY }},g" ${{ github.workspace }}/focalboard/server/services/telemetry/telemetry.go
+  #   - name: Replace token 2 server
+  #     run: sed -i -e "s,placeholder_rudder_key,${{ secrets.RUDDER_PROD_KEY }},g" ${{ github.workspace }}/focalboard/server/services/telemetry/telemetry.go
 
-    - name: npm ci
-      run: cd focalboard/webapp; npm ci --no-optional
+  #   - name: npm ci
+  #     run: cd focalboard/webapp; npm ci --no-optional
 
-    - name: Set up Go
-      uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
-      with:
-        go-version: 1.21
+  #   - name: Set up Go
+  #     uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+  #     with:
+  #       go-version: 1.21
 
-    - name: List Xcode versions
-      run: ls -n /Applications/ | grep Xcode*
+  #   - name: List Xcode versions
+  #     run: ls -n /Applications/ | grep Xcode*
 
-    - name: Build macOS
-      run: cd focalboard; make mac-app
-      env:
-        DEVELOPER_DIR: /Applications/Xcode_16.0.app/Contents/Developer
-        BUILD_NUMBER: ${{ github.run_id }}
+  #   - name: Build macOS
+  #     run: cd focalboard; make mac-app
+  #     env:
+  #       DEVELOPER_DIR: /Applications/Xcode_16.0.app/Contents/Developer
+  #       BUILD_NUMBER: ${{ github.run_id }}
 
-    - name: Upload macOS package
-      uses: actions/upload-artifact@v4
-      with:
-        name: focalboard-mac.zip
-        path: ${{ github.workspace }}/focalboard/mac/dist/focalboard-mac.zip
+  #   - name: Upload macOS package
+  #     uses: actions/upload-artifact@v4
+  #     with:
+  #       name: focalboard-mac.zip
+  #       path: ${{ github.workspace }}/focalboard/mac/dist/focalboard-mac.zip
 #
 #  windows:
 #    runs-on: windows-2025
