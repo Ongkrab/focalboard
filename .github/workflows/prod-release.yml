@@ -1,13 +1,17 @@
 name: Production-Release
 
-on: workflow_dispatch
+on:
+  push:
+    tags:
+      - 'releases-**'
+  pull_request:
+  workflow_dispatch:
 
 env:
  EXCLUDE_ENTERPRISE: true
  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
 jobs:
-
   ubuntu:
     runs-on: ubuntu-22.04
 
@@ -16,6 +20,23 @@ jobs:
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         path: "focalboard"
+    
+    - name: Debug output folder
+      run: ls -lh ./
+    # - name: version
+    #   run: echo "::set-output name=version::$(./bin/azblogfilter --version)"
+    #   id: version
+    - name: release
+      uses: actions/create-release@v1
+      id: create_release
+      with:
+        draft: false
+        prerelease: false
+        release_name: ${{ steps.version.outputs.version }}
+        tag_name: ${{ github.ref }}
+        body_path: ./focalboard/CHANGELOG.md
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
 
     - name: Replace token 1 server
       run: sed -i -e "s,placeholder_rudder_dataplane_url,${{ secrets.RUDDER_DATAPLANE_URL }},g" ${{ github.workspace }}/focalboard/server/services/telemetry/telemetry.go
@@ -51,55 +72,79 @@ jobs:
         BUILD_NUMBER: ${{ github.run_id }}
 
     - name: Upload server package
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      uses: actions/upload-artifact@v4
       with:
         name: focalboard-server-linux-amd64.tar.gz
         path: ${{ github.workspace }}/focalboard/dist/focalboard-server-linux-amd64.tar.gz
 
     - name: Upload app package
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      uses: actions/upload-artifact@v4
       with:
         name: focalboard-linux.tar.gz
         path: ${{ github.workspace }}/focalboard/linux/dist/focalboard-linux.tar.gz
-
-  macos:
-    runs-on: macos-15
-
-    steps:
-
-    - name: Checkout
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      with:
-        path: "focalboard"
-
-    - name: Replace token 1 server
-      run: sed -i -e "s,placeholder_rudder_dataplane_url,${{ secrets.RUDDER_DATAPLANE_URL }},g" ${{ github.workspace }}/focalboard/server/services/telemetry/telemetry.go
-
-    - name: Replace token 2 server
-      run: sed -i -e "s,placeholder_rudder_key,${{ secrets.RUDDER_PROD_KEY }},g" ${{ github.workspace }}/focalboard/server/services/telemetry/telemetry.go
-
-    - name: npm ci
-      run: cd focalboard/webapp; npm ci --no-optional
-
-    - name: Set up Go
-      uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
-      with:
-        go-version: 1.21
-
-    - name: List Xcode versions
-      run: ls -n /Applications/ | grep Xcode*
-
-    - name: Build macOS
-      run: cd focalboard; make mac-app
+    
+    - name: Upload Release linux arm Asset
+      uses: actions/upload-release-asset@v1
       env:
-        DEVELOPER_DIR: /Applications/Xcode_16.0.app/Contents/Developer
-        BUILD_NUMBER: ${{ github.run_id }}
-
-    - name: Upload macOS package
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        GITHUB_TOKEN: ${{ github.token }}
       with:
-        name: focalboard-mac.zip
-        path: ${{ github.workspace }}/focalboard/mac/dist/focalboard-mac.zip
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ github.workspace }}/focalboard/dist/focalboard-server-linux-amd64.tar.gz
+        asset_name: focalboard-server-linux-amd64.tar.gz
+        asset_content_type: application/gzip
+
+    - name: Upload Release linux x86 Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ github.workspace }}/focalboard/dist/focalboard-linux.tar.gz
+        asset_name: focalboard-server-linux.tar.gz
+        asset_content_type: application/gzip
+
+
+    - name: Debug output folder
+      run: ls -lh ./focalboard
+
+  # macos:
+  #   runs-on: macos-15
+
+  #   steps:
+
+  #   - name: Checkout
+  #     uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+  #     with:
+  #       path: "focalboard"
+
+  #   - name: Replace token 1 server
+  #     run: sed -i -e "s,placeholder_rudder_dataplane_url,${{ secrets.RUDDER_DATAPLANE_URL }},g" ${{ github.workspace }}/focalboard/server/services/telemetry/telemetry.go
+
+  #   - name: Replace token 2 server
+  #     run: sed -i -e "s,placeholder_rudder_key,${{ secrets.RUDDER_PROD_KEY }},g" ${{ github.workspace }}/focalboard/server/services/telemetry/telemetry.go
+
+  #   - name: npm ci
+  #     run: cd focalboard/webapp; npm ci --no-optional
+
+  #   - name: Set up Go
+  #     uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+  #     with:
+  #       go-version: 1.21
+
+  #   - name: List Xcode versions
+  #     run: ls -n /Applications/ | grep Xcode*
+
+  #   - name: Build macOS
+  #     run: cd focalboard; make mac-app
+  #     env:
+  #       DEVELOPER_DIR: /Applications/Xcode_16.0.app/Contents/Developer
+  #       BUILD_NUMBER: ${{ github.run_id }}
+
+  #   - name: Upload macOS package
+  #     uses: actions/upload-artifact@v4
+  #     with:
+  #       name: focalboard-mac.zip
+  #       path: ${{ github.workspace }}/focalboard/mac/dist/focalboard-mac.zip
 #
 #  windows:
 #    runs-on: windows-2025
