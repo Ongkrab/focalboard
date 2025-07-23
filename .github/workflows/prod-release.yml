@@ -93,16 +93,6 @@ jobs:
         asset_name: focalboard-server-linux-amd64.tar.gz
         asset_content_type: application/gzip
 
-    - name: Upload Release linux x86 Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ${{ github.workspace }}/focalboard/dist/focalboard-linux.tar.gz
-        asset_name: focalboard-server-linux.tar.gz
-        asset_content_type: application/gzip
-
 
     - name: Debug output folder
       run: ls -lh ./focalboard
