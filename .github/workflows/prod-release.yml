@@ -93,7 +93,7 @@ jobs:
         asset_name: focalboard-server-linux-amd64.zip
         asset_content_type: application/zip
     - name: Debug output folder
-      run: ls -lh ./build
+      run: ls -lh ./focalboard
 
   # macos:
   #   runs-on: macos-15
